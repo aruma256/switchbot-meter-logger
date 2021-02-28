@@ -1,5 +1,5 @@
 import binascii
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import json
 from queue import deque
@@ -50,7 +50,7 @@ class MeterData:
         sign = '' if self.temperature_mode_flag else '-'
         self.temperature = Decimal(f'{sign}{self.temperature_int}.{self.temperature_decimal}')
 
-        self.datetime = datetime.now()
+        self.datetime = datetime.now(tz=timezone.utc)
 
 class _ScanCallback(DefaultDelegate):
 
@@ -68,8 +68,8 @@ class _ScanCallback(DefaultDelegate):
 class MeterListener:
 
     def __call__(self, data: MeterData):
-        INFLUX_API.write(settings['influx']['bucket'], settings['influx']['org'], f"meter,host=room temperature={data.temperature}", precision='s')
-        INFLUX_API.write(settings['influx']['bucket'], settings['influx']['org'], f"meter,host=room humidity={data.humidity}", precision='s')
+        INFLUX_API.write(settings['influx']['bucket'], settings['influx']['org'], f'meter,host=room temperature={data.temperature} {int(data.datetime.timestamp())}', write_precision='s')
+        INFLUX_API.write(settings['influx']['bucket'], settings['influx']['org'], f'meter,host=room humidity={data.humidity} {int(data.datetime.timestamp())}', write_precision='s')
 
 if __name__ == '__main__':
     listener = MeterListener()
